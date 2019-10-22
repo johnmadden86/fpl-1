@@ -1,6 +1,5 @@
 from ..utils import team_converter
 from .player import Player
-from datetime import datetime
 
 
 def add_player(location, information):
@@ -35,19 +34,6 @@ class Fixture:
                 v = {w['identifier']: {'a': w['a'], 'h': w['h']} for w in v}
             setattr(self, k, v)
 
-    def _get_players(self, metric):  # no longer used
-        """Helper function that returns a dictionary containing players for the
-        given metric (away and home).
-        """
-        stats = getattr(self, "stats", [])
-        for statistic in stats:
-            if metric == statistic['identifier']:
-                # # merge home and away player lists and sort in descending order
-                # return sorted(statistic['a'] + statistic['h'], key=lambda x: x['value'], reverse=True)
-                print(metric, statistic)
-                return statistic
-        return {}
-
     def get_goalscorers(self):
         """Returns all players who scored in the fixture.
         :rtype: dict
@@ -59,13 +45,12 @@ class Fixture:
 
     def get_assisters(self):
         """Returns all players who made an assist in the fixture.
-
         :rtype: dict
         """
         try:
             return self.stats["assists"]
         except KeyError:
-            return {'a': [], 'h': []}
+            return {"a": [], "h": []}
 
     def get_own_goalscorers(self):
         """Returns all players who scored an own goal in the fixture.
@@ -74,7 +59,7 @@ class Fixture:
         try:
             return self.stats["own_goals"]
         except KeyError:
-            return {'a': [], 'h': []}
+            return {"a": [], "h": []}
 
     def get_yellow_cards(self):
         """Returns all players who received a yellow card in the fixture.
@@ -84,7 +69,7 @@ class Fixture:
         try:
             return self.stats["yellow_cards"]
         except KeyError:
-            return {'a': [], 'h': []}
+            return {"a": [], "h": []}
 
     def get_red_cards(self):
         """Returns all players who received a red card in the fixture.
@@ -94,7 +79,7 @@ class Fixture:
         try:
             return self.stats["red_cards"]
         except KeyError:
-            return {'a': [], 'h': []}
+            return {"a": [], "h": []}
 
     def get_penalty_saves(self):
         """Returns all players who saved a penalty in the fixture.
@@ -104,7 +89,7 @@ class Fixture:
         try:
             return self.stats["penalties_saved"]
         except KeyError:
-            return {'a': [], 'h': []}
+            return {"a": [], "h": []}
 
     def get_penalty_misses(self):
         """Returns all players who missed a penalty in the fixture.
@@ -114,7 +99,7 @@ class Fixture:
         try:
             return self.stats["penalties_missed"]
         except KeyError:
-            return {'a': [], 'h': []}
+            return {"a": [], "h": []}
 
     def get_saves(self):
         """Returns all players who made a save in the fixture.
@@ -124,7 +109,7 @@ class Fixture:
         try:
             return self.stats["saves"]
         except KeyError:
-            return {'a': [], 'h': []}
+            return {"a": [], "h": []}
 
     def get_bonus(self, provisional=False):
         """Returns all players who received bonus points in the fixture.
@@ -182,7 +167,7 @@ class Fixture:
         try:
             return self.stats["bps"]
         except KeyError:
-            return {'a': [], 'h': []}
+            return {"a": [], "h": []}
 
     def __str__(self):
         return (f"{team_converter(self.team_h)} vs. "

@@ -26,6 +26,7 @@ Fantasy Premier League API:
 import asyncio
 import itertools
 import os
+
 import requests
 
 from .constants import API_URLS
@@ -37,7 +38,7 @@ from .models.player import Player, PlayerSummary
 from .models.team import Team
 from .models.user import User
 from .utils import (average, fetch, logged_in, position_converter, scale,
-                    team_converter)
+                    team_converter, get_current_user)
 
 
 class FPL:
@@ -48,13 +49,13 @@ class FPL:
         static = requests.get(API_URLS["static"]).json()  # use synchronous request
         for k, v in static.items():
             try:
-                v = {w["id"]: w for w in v}
+                v = [w for w in v]
             except (KeyError, TypeError):
                 pass
             setattr(self, k, v)
         setattr(self, "current_gameweek", next(event for event in static["events"] if event["is_current"])['id'])
 
-    async def get_user(self, user_id, return_json=False):
+    async def get_user(self, user_id=None, return_json=False):
         """Returns the user with the given ``user_id``.
 
         Information is taken from e.g.:
@@ -67,7 +68,17 @@ class FPL:
         :type return_json: bool
         :rtype: :class:`User` or `dict`
         """
-        assert int(user_id) > 0, "User ID must be a positive number."
+        if user_id:
+            assert int(user_id) > 0, "User ID must be a positive number."
+        else:
+            # If no user ID provided get it from current session
+            try:
+                user = await get_current_user(self.session)
+                user_id = user["player"]["entry"]
+            except TypeError:
+                raise Exception("You must log in before using `get_user` if "
+                                "you do not provide a user ID.")
+
         url = API_URLS["user"].format(user_id)
         user = await fetch(self.session, url)
 
@@ -91,15 +102,14 @@ class FPL:
         :rtype: list
         """
         teams = getattr(self, "teams")
-
         if team_ids:
             team_ids = set(team_ids)
-            teams = {team["id"]: team for team in teams.values() if team["id"] in team_ids}
+            teams = [team for team in teams if team["id"] in team_ids]
 
         if return_json:
             return teams
         return [Team(team_information, self.session)
-                for team_information in teams.values()]
+                for team_information in teams]
 
     async def get_team(self, team_id, return_json=False):
         """Returns the team with the given ``team_id``.
@@ -141,9 +151,8 @@ class FPL:
         """
         assert 0 < int(
             team_id) < 21, "Team ID must be a number between 1 and 20."
-        url = API_URLS["static"]
         teams = getattr(self, "teams")
-        team = next(team for team in teams.values()
+        team = next(team for team in teams
                     if team["id"] == int(team_id))
 
         if return_json:
@@ -225,7 +234,7 @@ class FPL:
             players = getattr(self, "elements")
 
         try:
-            player = next(player for player in players.values()
+            player = next(player for player in players
                           if player["id"] == player_id)
         except StopIteration:
             raise ValueError(f"Player with ID {player_id} not found")
@@ -270,7 +279,7 @@ class FPL:
         players = getattr(self, "elements")
 
         if not player_ids:
-            player_ids = [player["id"] for player in players.values()]
+            player_ids = [player["id"] for player in players]
 
         tasks = [asyncio.ensure_future(
                  self.get_player(
@@ -305,7 +314,7 @@ class FPL:
 
         gameweek_fixtures = await fetch(
             self.session,
-            API_URLS["gameweek_fixtures"].format(fixture_gameweek))
+            API_URLS["fixtures"], params={"event": fixture_gameweek})
 
         try:
             fixture = next(fixture for fixture in gameweek_fixtures
@@ -342,7 +351,7 @@ class FPL:
                                 if fixture["id"] in fixture_ids)
         tasks = [asyncio.ensure_future(
                  fetch(self.session,
-                       API_URLS["gameweek_fixtures"].format(gameweek)))
+                       API_URLS["fixtures"], params={"event": gameweek}))
                  for gameweek in fixture_gameweeks]
 
         gameweek_fixtures = await asyncio.gather(*tasks)
@@ -372,12 +381,12 @@ class FPL:
         :rtype: list
         """
         fixtures = await fetch(self.session,
-                               API_URLS["gameweek_fixtures"].format(gameweek))
+                               API_URLS["fixtures"], params={"event": gameweek})
 
         if return_json:
             return fixtures
 
-        return {fixture["id"]: Fixture(fixture) for fixture in fixtures}
+        return [Fixture(fixture) for fixture in fixtures]
 
     async def get_fixtures(self, return_json=False):
         """Returns a list of *all* fixtures.
@@ -395,7 +404,7 @@ class FPL:
         gameweeks = range(1, 39)
         tasks = [asyncio.ensure_future(
                  fetch(self.session,
-                       API_URLS["gameweek_fixtures"].format(gameweek)))
+                       API_URLS["fixtures"], params={"event": gameweek}))
                  for gameweek in gameweeks]
 
         gameweek_fixtures = await asyncio.gather(*tasks)
@@ -427,7 +436,7 @@ class FPL:
         static_gameweeks = getattr(self, "events")
 
         try:
-            static_gameweek = next(gameweek for gameweek in static_gameweeks.values() if
+            static_gameweek = next(gameweek for gameweek in static_gameweeks if
                                    gameweek["id"] == gameweek_id)
         except StopIteration:
             raise ValueError(f"Gameweek with ID {gameweek_id} not found")
@@ -535,13 +544,27 @@ class FPL:
         if not logged_in(self.session):
             raise Exception("User must be logged in.")
 
-        url = API_URLS["league_h2h"].format(league_id, 1)  # return first page of standings only
+        url = API_URLS["league_h2h"].format(league_id)
         league = await fetch(self.session, url)
 
         if return_json:
             return league
 
         return H2HLeague(league, session=self.session)
+
+    async def get_league(self, url, all_pages=False):
+        league = await fetch(self.session, url)
+        if all_pages:
+            for x in ("new_entries", "standings"):
+                has_next = league[x]["has_next"]
+                params = {f"page_{x}": 2}
+                while has_next:
+                    league[x]["results"] \
+                        .extend((await fetch(self._session, url, params=params))[x]["results"])
+                    has_next = league[x]["has_next"]
+                    params[f"page_{x}"] += 1
+
+        return league
 
     async def login(self, email=None, password=None):
         """Returns a requests session with FPL login authentication.
@@ -566,9 +589,10 @@ class FPL:
 
         login_url = "https://users.premierleague.com/accounts/login/"
         async with self.session.post(login_url, data=payload) as response:
-            response_text = await response.text()
-            if "Incorrect email or password" in response_text:
-                raise ValueError("Incorrect email or password!")
+            state = response.url.query["state"]
+            if state == "fail":
+                reason = response.url.query["reason"]
+                raise ValueError(f"Login not successful, reason: {reason}")
 
     async def get_points_against(self):
         """Returns a dictionary containing the points scored against all teams

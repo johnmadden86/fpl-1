@@ -1,13 +1,17 @@
 import asyncio
 from functools import update_wrapper
 
+from fpl.constants import API_URLS
+
 headers = {"User-Agent": "https://github.com/amosbastian/fpl"}
 
 
-async def fetch(session, url):
+async def fetch(session, url, params=None):
+    if params is None:
+        params = {}
     while True:
         try:
-            async with session.get(url, headers=headers) as response:
+            async with session.get(url, headers=headers, params=params) as response:
                 assert response.status == 200
                 return await response.json()
         except Exception:
@@ -168,3 +172,8 @@ def get_headers(referer):
         "X-Requested-With": "XMLHttpRequest",
         "Referer": referer
     }
+
+
+async def get_current_user(session):
+    user = await fetch(session, API_URLS["me"])
+    return user
