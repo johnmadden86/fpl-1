@@ -248,7 +248,6 @@ class TestFPL(object):
         with pytest.raises(ValueError):
             await fpl.login(123, 123)
         assert mocked_text.call_count == 1
-
         monkeypatch.setenv("FPL_EMAIL", 123)
         monkeypatch.setenv("FPL_PASSWORD", 123)
         with pytest.raises(ValueError):
