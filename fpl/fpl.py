@@ -49,7 +49,7 @@ class FPL:
         static = requests.get(API_URLS["static"]).json()  # use synchronous request
         for k, v in static.items():
             try:
-                v = {w["id"]: w for w in v}
+                v = [w for w in v]
             except (KeyError, TypeError):
                 pass
             setattr(self, k, v)
@@ -102,7 +102,7 @@ class FPL:
         :rtype: list
         """
         teams = getattr(self, "teams")
-
+        print(teams)
         if team_ids:
             team_ids = set(team_ids)
             teams = [team for team in teams if team["id"] in team_ids]
@@ -154,7 +154,7 @@ class FPL:
         assert 0 < int(
             team_id) < 21, "Team ID must be a number between 1 and 20."
         teams = getattr(self, "teams")
-        team = next(team for team in teams.values()
+        team = next(team for team in teams
                     if team["id"] == int(team_id))
 
         if return_json:
@@ -236,7 +236,7 @@ class FPL:
             players = getattr(self, "elements")
 
         try:
-            player = next(player for player in players.values()
+            player = next(player for player in players
                           if player["id"] == player_id)
         except StopIteration:
             raise ValueError(f"Player with ID {player_id} not found")
@@ -272,7 +272,7 @@ class FPL:
         players = getattr(self, "elements")
 
         if not player_ids:
-            player_ids = [player["id"] for player in players.values()]
+            player_ids = [player["id"] for player in players]
 
         tasks = [asyncio.ensure_future(
                  self.get_player(
@@ -430,7 +430,7 @@ class FPL:
         static_gameweeks = getattr(self, "events")
 
         try:
-            static_gameweek = next(gameweek for gameweek in static_gameweeks.values() if
+            static_gameweek = next(gameweek for gameweek in static_gameweeks if
                                    gameweek["id"] == gameweek_id)
         except StopIteration:
             raise ValueError(f"Gameweek with ID {gameweek_id} not found")
@@ -440,7 +440,7 @@ class FPL:
                 self.session, API_URLS["gameweek_live"].format(gameweek_id))
 
             # convert element list to dict
-            live_gameweek["elements"] = {element['id']: element for element in live_gameweek['elements']}
+            live_gameweek["elements"] = [element for element in live_gameweek['elements']]
 
             # include live bonus points
             if not static_gameweek['finished']:

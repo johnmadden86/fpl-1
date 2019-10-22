@@ -29,7 +29,7 @@ class TestFPL(object):
             "current_gameweek",
         ]
         assert all([hasattr(fpl, key) for key in keys])
-        assert all([isinstance(getattr(fpl, key), dict) for key in keys[:-3]])
+        assert all([isinstance(getattr(fpl, key), list) for key in keys[:-3]])
         assert isinstance(getattr(fpl, keys[-3]), list)
         assert all([isinstance(getattr(fpl, key), int) for key in keys[-2:]])
         await session.close()
@@ -130,10 +130,10 @@ class TestFPL(object):
         assert isinstance(players[0], dict)
 
         players = await fpl.get_players([1, 2, 3])
-        assert len(players.values()) == 3
+        assert len(players) == 3
 
         players = await fpl.get_players([1, 2, 3], include_summary=True)
-        assert len(players.values()) == 3
+        assert len(players) == 3
         summary_keys = ("history_past", "history", "fixtures")
         assert all([isinstance(getattr(players[2], key), list) for key in summary_keys])
 
@@ -174,7 +174,7 @@ class TestFPL(object):
         for gameweek in range(1, 39):
             fixtures = await fpl.get_fixtures_by_gameweek(gameweek)
             assert isinstance(fixtures, list)
-            assert all([isinstance(fixtures[fixture_id], Fixture) for fixture_id in fixtures])
+            assert all([isinstance(fixture, Fixture) for fixture in fixtures])
 
             fixtures = await fpl.get_fixtures_by_gameweek(
                 gameweek, return_json=True)
@@ -218,7 +218,7 @@ class TestFPL(object):
         gameweek = await fpl.get_gameweek(1, include_live=True, return_json=True)
         assert isinstance(gameweek, dict)
         assert "elements" in gameweek.keys()
-        assert isinstance(gameweek["elements"], dict)
+        assert isinstance(gameweek["elements"], list)
 
     async def test_classic_league(self, loop, fpl):
         await fpl.login()
@@ -245,6 +245,7 @@ class TestFPL(object):
             await fpl.login()
         mocked_text.assert_not_called()
 
+    @pytest.mark.skip(reason="Need to mock logging in properly.")
     async def test_login_with_invalid_email_password(self, loop, mocker, monkeypatch, fpl):
         mocked_text = mocker.patch(
             'aiohttp.ClientResponse.text', new_callable=AsyncMock)
@@ -260,6 +261,7 @@ class TestFPL(object):
             await fpl.login()
         assert mocked_text.call_count == 2
 
+    @pytest.mark.skip(reason="Need to mock logging in properly.")
     async def test_login_with_valid_email_password(self, loop, mocker, fpl):
         mocked_text = mocker.patch(
             'aiohttp.ClientResponse.text', new_callable=AsyncMock)
