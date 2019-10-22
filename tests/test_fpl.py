@@ -130,11 +130,16 @@ class TestFPL(object):
         assert isinstance(players[0], dict)
 
         players = await fpl.get_players([1, 2, 3])
-        assert len(players) == 3
+        assert len(players.values()) == 3
 
-        players = await fpl.get_players([1, 2, 3], True)
+        players = await fpl.get_players([1, 2, 3], include_summary=True)
+        assert len(players.values()) == 3
+        summary_keys = ("history_past", "history", "fixtures")
+        assert all([isinstance(getattr(players[2], key), list) for key in summary_keys])
+
+        players = await fpl.get_players([1, 2, 3], include_summary=True, return_json=True)
         assert len(players) == 3
-        assert isinstance(players[0].fixtures, list)
+        assert all([isinstance(players[2][key], list) for key in summary_keys])
 
     async def test_fixture(self, loop, fpl):
         # test fixture with unknown id
@@ -248,6 +253,7 @@ class TestFPL(object):
         with pytest.raises(ValueError):
             await fpl.login(123, 123)
         assert mocked_text.call_count == 1
+
         monkeypatch.setenv("FPL_EMAIL", 123)
         monkeypatch.setenv("FPL_PASSWORD", 123)
         with pytest.raises(ValueError):
