@@ -72,12 +72,12 @@ class TestFPL(object):
         teams = await fpl.get_teams(return_json=True)
         assert isinstance(teams, list)
         assert len(teams) == 20
-        assert isinstance(teams[0], dict)
+        assert isinstance(teams[1], dict)
 
         teams = await fpl.get_teams(team_ids=[1, 2, 3])
         assert isinstance(teams, list)
         assert len(teams) == 3
-        assert isinstance(teams[0], Team)
+        assert isinstance(teams[1], Team)
         assert [team.id for team in teams] == [1, 2, 3]
 
     async def test_player_summary(self, loop, fpl):
@@ -168,8 +168,8 @@ class TestFPL(object):
     async def test_fixtures_by_gameweek(self, loop, fpl):
         for gameweek in range(1, 39):
             fixtures = await fpl.get_fixtures_by_gameweek(gameweek)
-            assert isinstance(fixtures, list)
-            assert isinstance(fixtures[0], Fixture)
+            assert isinstance(fixtures, dict)
+            assert all([isinstance(fixtures[fixture_id], Fixture) for fixture_id in fixtures.keys()])
 
             fixtures = await fpl.get_fixtures_by_gameweek(
                 gameweek, return_json=True)
@@ -210,13 +210,11 @@ class TestFPL(object):
         assert hasattr(gameweek, "elements")
         assert isinstance(gameweek.elements, dict)
 
-        gameweek = await fpl.get_gameweek(1, include_live=True,
-                                          return_json=True)
+        gameweek = await fpl.get_gameweek(1, include_live=True, return_json=True)
         assert isinstance(gameweek, dict)
         assert "elements" in gameweek.keys()
         assert isinstance(gameweek["elements"], dict)
 
-    @pytest.mark.skip(reason="Cannot currently test it.")
     async def test_classic_league(self, loop, fpl):
         await fpl.login()
         classic_league = await fpl.get_classic_league(173226)
@@ -233,8 +231,7 @@ class TestFPL(object):
         h2h_league = await fpl.get_h2h_league(902521, True)
         assert isinstance(h2h_league, dict)
 
-    async def test_login_with_no_email_password(
-            self, loop, mocker, monkeypatch, fpl):
+    async def test_login_with_no_email_password(self, loop, mocker, monkeypatch, fpl):
         mocked_text = mocker.patch(
             'aiohttp.ClientResponse.text', new_callable=AsyncMock)
         monkeypatch.setenv("FPL_EMAIL", "")
@@ -243,19 +240,26 @@ class TestFPL(object):
             await fpl.login()
         mocked_text.assert_not_called()
 
-    async def test_login_with_invalid_email_password(
-            self, loop, mocker, monkeypatch, fpl):
+    async def test_login_with_invalid_email_password(self, loop, mocker, monkeypatch, fpl):
+        mocked_text = mocker.patch(
+            'aiohttp.ClientResponse.text', new_callable=AsyncMock)
+        mocked_text.return_value = "Incorrect email or password"
+
         with pytest.raises(ValueError):
             await fpl.login(123, 123)
-
+        assert mocked_text.call_count == 1
         monkeypatch.setenv("FPL_EMAIL", 123)
         monkeypatch.setenv("FPL_PASSWORD", 123)
-
         with pytest.raises(ValueError):
             await fpl.login()
+        assert mocked_text.call_count == 2
 
     async def test_login_with_valid_email_password(self, loop, mocker, fpl):
-        await fpl.login()
+        mocked_text = mocker.patch(
+            'aiohttp.ClientResponse.text', new_callable=AsyncMock)
+        mocked_text.return_value = "Successful login"
+        await fpl.login("email", "password")
+        mocked_text.assert_called_once()
 
     async def test_points_against(self, loop, fpl):
         points_against = await fpl.get_points_against()
