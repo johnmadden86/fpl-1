@@ -70,14 +70,14 @@ class TestFPL(object):
         assert isinstance(teams[0], Team)
 
         teams = await fpl.get_teams(return_json=True)
-        assert isinstance(teams, dict)
+        assert isinstance(teams, list)
         assert len(teams) == 20
-        assert isinstance(teams[1], dict)
+        assert isinstance(teams[0], dict)
 
         teams = await fpl.get_teams(team_ids=[1, 2, 3])
         assert isinstance(teams, list)
         assert len(teams) == 3
-        assert isinstance(teams[1], Team)
+        assert isinstance(teams[0], Team)
         assert [team.id for team in teams] == [1, 2, 3]
 
     async def test_player_summary(self, loop, fpl):
@@ -168,8 +168,8 @@ class TestFPL(object):
     async def test_fixtures_by_gameweek(self, loop, fpl):
         for gameweek in range(1, 39):
             fixtures = await fpl.get_fixtures_by_gameweek(gameweek)
-            assert isinstance(fixtures, dict)
-            assert all([isinstance(fixtures[fixture_id], Fixture) for fixture_id in fixtures.keys()])
+            assert isinstance(fixtures, list)
+            assert all([isinstance(fixtures[fixture_id], Fixture) for fixture_id in fixtures])
 
             fixtures = await fpl.get_fixtures_by_gameweek(
                 gameweek, return_json=True)
@@ -208,28 +208,27 @@ class TestFPL(object):
         gameweek = await fpl.get_gameweek(1, include_live=True)
         assert isinstance(gameweek, Gameweek)
         assert hasattr(gameweek, "elements")
-        assert isinstance(gameweek.elements, dict)
+        assert isinstance(gameweek.elements, list)
 
         gameweek = await fpl.get_gameweek(1, include_live=True, return_json=True)
         assert isinstance(gameweek, dict)
         assert "elements" in gameweek.keys()
         assert isinstance(gameweek["elements"], dict)
 
-
-    @pytest.mark.skip(reason="Cannot currently test it.")
     async def test_classic_league(self, loop, fpl):
-        classic_league = await fpl.get_classic_league(34438)
+        await fpl.login()
+        classic_league = await fpl.get_classic_league(173226)
         assert isinstance(classic_league, ClassicLeague)
 
-        classic_league = await fpl.get_classic_league(34438, return_json=True)
+        classic_league = await fpl.get_classic_league(173226, return_json=True)
         assert isinstance(classic_league, dict)
 
-    @pytest.mark.skip(reason="Cannot currently test it.")
     async def test_h2h_league(self, loop, fpl):
-        h2h_league = await fpl.get_h2h_league(63368)
+        await fpl.login()
+        h2h_league = await fpl.get_h2h_league(902521)
         assert isinstance(h2h_league, H2HLeague)
 
-        h2h_league = await fpl.get_h2h_league(63368, True)
+        h2h_league = await fpl.get_h2h_league(902521, True)
         assert isinstance(h2h_league, dict)
 
     async def test_login_with_no_email_password(self, loop, mocker, monkeypatch, fpl):
@@ -260,7 +259,7 @@ class TestFPL(object):
         mocked_text = mocker.patch(
             'aiohttp.ClientResponse.text', new_callable=AsyncMock)
         mocked_text.return_value = "Successful login"
-        await fpl.login("email", "password")
+        await fpl.login()
         mocked_text.assert_called_once()
 
     async def test_points_against(self, loop, fpl):
