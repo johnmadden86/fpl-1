@@ -113,6 +113,11 @@ class TestFPL(object):
         player = await fpl.get_player(1)
         assert isinstance(player, Player)
 
+        gameweek = await fpl.get_gameweek(9, include_live=True)
+        player = await fpl.get_player(215, gameweek=gameweek)
+        assert hasattr(player, "live_score")
+        assert hasattr(player, "did_not_play")
+
         player = await fpl.get_player(1, return_json=True)
         assert isinstance(player, dict)
 
@@ -137,9 +142,9 @@ class TestFPL(object):
         summary_keys = ("history_past", "history", "fixtures")
         assert all([isinstance(getattr(players[2], key), list) for key in summary_keys])
 
-        players = await fpl.get_players([1, 2, 3], include_summary=True, return_json=True)
+        players = await fpl.get_players([1, 2, 3], include_live=True)
         assert len(players) == 3
-        assert all([isinstance(players[2][key], list) for key in summary_keys])
+        assert all([hasattr(players[2], key) for key in ["live_score", "did_not_play"]])
 
     async def test_fixture(self, loop, fpl):
         # test fixture with unknown id
