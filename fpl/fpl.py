@@ -182,6 +182,7 @@ class FPL:
 
         return PlayerSummary(player_summary)
 
+    # not used
     async def get_player_summaries(self, player_ids, return_json=False):
         """Returns a list of summaries of players whose ID are
         in the ``player_ids`` list.
