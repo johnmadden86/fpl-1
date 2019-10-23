@@ -430,7 +430,7 @@ class FPL:
             if ``False`` returns a :class:`Gameweek` object. Defaults to
             ``False``.
         :type return_json: bool
-        :rtype: :class:`Gameweek` or ``dict``
+        :rtype: :class:`Gameweek` oFr ``dict``
         """
 
         static_gameweeks = getattr(self, "events")
@@ -446,10 +446,10 @@ class FPL:
                 self.session, API_URLS["gameweek_live"].format(gameweek_id))
 
             # convert element list to dict
-            live_gameweek["elements"] = {element['id']: element for element in live_gameweek['elements']}
+            live_gameweek["elements"] = [element for element in live_gameweek['elements']]
 
             # mark players that did not play
-            for element in live_gameweek['elements'].values():
+            for element in live_gameweek['elements']:
                 element['sub_out'] = element['stats']['minutes'] == 0
 
             # include live bonus points

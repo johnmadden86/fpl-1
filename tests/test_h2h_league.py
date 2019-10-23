@@ -212,9 +212,6 @@ class TestH2HLeague(object):
         with pytest.raises(Exception):
             await h2h_league.get_fixtures(1)
 
-    async def test_get_fixtures_with_known_gameweek_authorized(  # issue with login
-            self, loop, mocker, h2h_league):
-
     @pytest.mark.skip(reason="Need to mock logging in properly.")
     async def test_get_fixtures_with_known_gameweek_authorized(
             self, loop, mocker, fpl, h2h_league):
@@ -232,9 +229,6 @@ class TestH2HLeague(object):
             self, loop, h2h_league):
         with pytest.raises(Exception):
             await h2h_league.get_fixtures()
-
-    async def test_get_fixtures_with_unknown_gameweek_authorized(  # issue with login
-            self, loop, mocker, h2h_league):
 
     @pytest.mark.skip(reason="Need to mock logging in properly.")
     async def test_get_fixtures_with_unknown_gameweek_authorized(
